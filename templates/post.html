@@ -1,0 +1,19 @@
+<div class="post">
+  <div class="post-heading">
+      <div class="created_by">
+      Posted By: {{p.created_by}} | <u><a href="/blog/comments?post={{p.key().id()}}">Comments</u></a> | <u><a href="/blog/edit?post={{p.key().id()}}">Edit</u></a> | <u><a href="/blog/delete?post={{p.key().id()}}">Delete</a></u>
+    </div>
+
+    <div class="post-title">
+      {{p.subject}}
+    </div>
+
+    <div class="post-date">
+      {{p.created.strftime("%b %d, %Y")}}
+    </div>
+  </div>
+
+  <div class="post-content">
+    {{p._render_text | safe}}
+  </div>
+</div>

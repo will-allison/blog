@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {{post.render() | safe}}
+  <br>
+  {% for c in comments %}
+    Comment:<bR>
+    {{c.content}}
+    <br><br>
+  {% endfor %}
+  <form method="post">
+  	<h1>Add Comment</h1>
+  	<textarea name="addComment"></textarea><bR>
+  	<input type="submit">
+  </form>
+{% endblock %}
