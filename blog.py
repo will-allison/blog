@@ -140,7 +140,7 @@ class Comment(db.Model):
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
-        return render_str("comment.html", c = self)
+        return render_str("newcomment.html", c = self)
 
 class BlogFront(BlogHandler):
     def get(self):
@@ -284,7 +284,6 @@ class Logout(BlogHandler):
         self.logout()
         self.redirect('/blog')
 
-#need smore investigation
 class Delete(BlogHandler):
     def get(self):
         post_id = self.request.get("post")
@@ -347,6 +346,9 @@ class Edit(BlogHandler):
 
 class CommentPage(BlogHandler):
     def get(self):
+        if not self.user:
+            self.redirect('/login')
+
         post_id = self.request.get("post")
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -354,33 +356,43 @@ class CommentPage(BlogHandler):
             self.error(404)
 
         comments = db.GqlQuery(
-            "select * from Comment where post = (%s) order by created desc" % post_id)
+            "select * from Comment where post = :1 order by created desc", post_id)
+
         #comments = Comment.all().order('-created')
-        self.render("comment.html", post = post, comments = comments)
+        self.render("comment.html", post = post, comments = comments,post_id = post_id)
 
     def post(self):
         post_id = self.request.get("post")
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+        content = self.request.get('addComment')
+        created_by = self.user.name
         if not post:
             self.error(404)
 
-        if not self.user:
-            self.redirect('/blog')
-
-        content = self.request.get('addComment')
-        created_by = self.user.name
-
-        if content:
-            c = Comment(content = content, post = post_id, created_by = created_by)
-            c.put()
-            #comments = db.GqlQuery(
-            #"select * from Comment where post in (%s) order by created desc" % post_id)
-            #comments = Comment.all().order('-created')
-            #self.render("comment.html", post = post, comments = comments)
-        else:
+        elif not content:
             error = "content, please!"
-            self.render("comment.html", content=content, error=error)
+            self.redirect('/blog/comments?post=%s' % str(post.key().id()))
+
+        else:
+            c = Comment(parent = blog_key(), content = content, post = post_id, created_by = created_by)
+            c.put()
+            comments = db.GqlQuery(
+            "select * from Comment where post = :1 order by created desc", post_id)
+            #comments = Comment.all().order('-created')
+            self.render("comment.html", post = post, comments = comments, post_id = post_id)
+
+class EditComment(BlogHandler):
+    def get(self):
+        comment_id = self.request.get("comment")
+        key = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
+        comment = db.get(key)
+        #comment = Comment.get_by_id(int(comment_id), parent = blog_key())
+        #if not comment:
+         #   self.error(404)
+          #  return
+
+        self.render("editcomment.html", content = comment.content)
 
 class Unit3Welcome(BlogHandler):
     def get(self):
@@ -407,6 +419,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/delete',Delete),
                                ('/blog/edit',Edit),
                                ('/blog/comments',CommentPage),
+                               ('/blog/editcomment',EditComment),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
