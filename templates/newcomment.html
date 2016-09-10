@@ -1,0 +1,7 @@
+  <div class="comment-content">
+      <div class="created_by">
+        Posted By: {{c.created_by}} | <u><a href="/blog/editcomment?comment={{c.key().id()}}">Edit</u></a> | <u><a href="/blog/deletecomment?comment={{c.key().id()}}">Delete</a></u>
+    </div>
+    {{c._render_text | safe}}
+  </div>
+    <br><br>
