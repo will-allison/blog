@@ -3,6 +3,7 @@ import re
 import random
 import hashlib
 import hmac
+import time
 from string import letters
 
 import webapp2
@@ -126,6 +127,8 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add = True)
     created_by = db.StringProperty(required = False)
     last_modified = db.DateTimeProperty(auto_now = True)
+    likes = db.IntegerProperty(required= True)
+    liked_by = db.ListProperty(str)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
@@ -174,7 +177,13 @@ class NewPost(BlogHandler):
         created_by = self.user.name
 
         if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content, created_by = created_by)
+            p = Post(
+                parent = blog_key(),
+                subject = subject,
+                content = content,
+                created_by = created_by,
+                likes = 0,
+                liked_by = [])
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
@@ -327,7 +336,8 @@ class Edit(BlogHandler):
         content = self.request.get('content')
 
         if not self.user:
-            self.redirect('/blog')
+            #self.redirect('/blog')
+            error = "You do not have permission to edit this post"
             self.render("newpost.html", subject=subject, content=content, error=error)
 
         elif not self.user.name == post.created_by:
@@ -372,10 +382,12 @@ class CommentPage(BlogHandler):
 
         elif not content:
             error = "content, please!"
-            self.redirect('/blog/comments?post=%s' % str(post.key().id()))
+            comments = db.GqlQuery(
+            "select * from Comment where post = :1 order by created desc", post_id)
+            self.render("comment.html", post = post, comments = comments,post_id = post_id, error = error)
 
         else:
-            c = Comment(parent = blog_key(), content = content, post = post_id, created_by = created_by)
+            c = Comment(content = content, post = post_id, created_by = created_by)
             c.put()
             comments = db.GqlQuery(
             "select * from Comment where post = :1 order by created desc", post_id)
@@ -385,14 +397,106 @@ class CommentPage(BlogHandler):
 class EditComment(BlogHandler):
     def get(self):
         comment_id = self.request.get("comment")
-        key = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
-        comment = db.get(key)
-        #comment = Comment.get_by_id(int(comment_id), parent = blog_key())
+        #key = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
+        #comment = db.get(key)
+        comment = Comment.get_by_id(int(comment_id))
+        #comment = db.GqlQuery(
+        #    "select * from Comment")
         #if not comment:
-         #   self.error(404)
-          #  return
+            #self.error(404)
+            #return
+        self.render("editcomment.html", comment = comment.content)
 
-        self.render("editcomment.html", content = comment.content)
+    def post(self):
+        comment_id = self.request.get("comment")
+        comment = Comment.get_by_id(int(comment_id))
+        content = self.request.get('editComment')
+
+        if not self.user:
+            #self.redirect('/blog')
+            error = "You do not have permission to edit this post"
+            self.render("editcomment.html", comment=comment.content, error=error)
+
+        elif not self.user.name == comment.created_by:
+            error = "You do not have permission to edit this post"
+            self.render("editcomment.html", comment=comment.content, error=error)
+
+        elif content:
+            comment.content = content
+            comment.put()
+            self.redirect('/blog/comments?post=%s' % str(comment.post))
+
+        else:
+            error = "Comment cannot be blank"
+            self.render("editcomment.html", comment=comment.content, error=error)
+
+class DeleteComment(BlogHandler):
+    def get(self):
+        comment_id = self.request.get("comment")
+        comment = Comment.get_by_id(int(comment_id))
+        self.render("deletecomment.html",comment=comment)
+
+    def post(self):
+        comment_id = self.request.get("comment")
+        comment = Comment.get_by_id(int(comment_id))
+        if self.user.name == comment.created_by:
+            db.delete(comment)
+            self.redirect('/blog/comments?post=%s' % str(comment.post))
+        else:
+            error = "You do not have permission to delete this post"
+            self.render("deletecomment.html", comment=comment, error = error)
+
+class ResetLikes(BlogHandler):
+    def get(self):
+        posts = greetings = Post.all()
+        for p in posts:
+            if not p.likes:
+                p.likes = 0
+                p.liked_by = []
+                p.put()
+
+
+class LikePost(BlogHandler):
+    def get(self):
+        post_id = self.request.get("post")
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not self.user:
+            self.redirect('/login')
+        elif self.user.name == post.created_by:
+            error = "You cannot like your own post"
+            self.render("error.html",error = error)
+        elif self.user.name in post.liked_by:
+            error = "You already liked this post"
+            self.render("error.html",error = error)
+        else:
+            user_liked = self.user.name
+            post.likes += 1
+            post.liked_by.append(user_liked)
+            post.put()
+            self.redirect("/blog")
+
+class UnlikePost(BlogHandler):
+    def get(self):
+        post_id = self.request.get("post")
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not self.user:
+            self.redirect('/login')
+        elif self.user.name == post.created_by:
+            error = "You cannot unlike your own post"
+            self.render("error.html",error = error)
+        elif self.user.name not in post.liked_by:
+            error = "You have not yet liked this post"
+            self.render("error.html",error = error)
+        else:
+            user_unliked = self.user.name
+            post.likes -= 1
+            #remove user from liked_by list
+            post.liked_by.remove(user_unliked)
+            post.put()
+            self.redirect("/blog")
+
 
 class Unit3Welcome(BlogHandler):
     def get(self):
@@ -420,6 +524,10 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/edit',Edit),
                                ('/blog/comments',CommentPage),
                                ('/blog/editcomment',EditComment),
+                               ('/blog/deletecomment', DeleteComment),
+                               ('/blog/like', LikePost),
+                               ('/blog/unlike',UnlikePost),
+                               ('/blog/resetlikes', ResetLikes),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
