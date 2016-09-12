@@ -3,6 +3,23 @@
 {% block content %}
 
   {% for p in posts %}
+  	<div class="post-heading">
+      <div class="created_by">
+      Posted By: {{p.created_by}} |
+      Likes: {{p.likes}} |
+      {% if user.name in p.liked_by %}
+      <u><a href="/blog/unlike?post={{p.key().id()}}">Unlike</a></u> |
+      {% elif user and p.created_by != user.name %}
+      <u><a href="/blog/like?post={{p.key().id()}}">Like</a></u> |
+      {% endif %}
+      <u><a href="/blog/comments?post={{p.key().id()}}">Comments</u></a>
+      {% if p.created_by == user.name %}
+      | <u><a href="/blog/edit?post={{p.key().id()}}">Edit</u></a>
+      | <u><a href="/blog/delete?post={{p.key().id()}}">Delete</a></u>
+      {% endif %}
+      </div>
+      </div>
+
     {{ p.render() | safe }}
     <br><br>
   {% endfor %}

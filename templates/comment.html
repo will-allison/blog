@@ -1,16 +1,34 @@
 {% extends "base.html" %}
 
 {% block content %}
+    <div class="post-heading">
+      <div class="created_by">
+      Posted By: {{post.created_by}} |
+      Likes: {{post.likes}} |
+      {% if user.name in post.liked_by %}
+      <u><a href="/blog/unlike?post={{post.key().id()}}">Unlike</a></u> |
+      {% elif user and post.created_by != user.name %}
+      <u><a href="/blog/like?post={{post.key().id()}}">Like</a></u> |
+      {% endif %}
+      <u><a href="/blog/comments?post={{post.key().id()}}">Comments</u></a>
+      {% if post.created_by == user.name %}
+      | <u><a href="/blog/edit?post={{post.key().id()}}">Edit</u></a>
+      | <u><a href="/blog/delete?post={{post.key().id()}}">Delete</a></u>
+      {% endif %}
+      </div>
+      </div>
   {{post.render() | safe}}
   <br>
+  <div class="comment-header">Comments:</div>
   {% for c in comments %}
-    Comment:<bR>
-    {{c.content}}
-    <br><br>
+    {{ c.render() | safe }}
   {% endfor %}
   <form method="post">
   	<h1>Add Comment</h1>
   	<textarea name="addComment"></textarea><bR>
   	<input type="submit">
   </form>
+  <div class="error">
+  {{error}}
+  </div>
 {% endblock %}
