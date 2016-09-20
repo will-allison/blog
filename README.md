@@ -4,6 +4,8 @@ To use this applicaiton, install the Google App Engine SDK for Python.
 
 Launch the App Engine and click "File --> Add Existing Application" and select the folder you have downloaded the files above into.
 
+A live version of this application can be found here: http://blog-144022.appspot.com/blog
+
 ## Overview ##
 
 This application will create a fully functional blog.
