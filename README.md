@@ -13,3 +13,5 @@ Create/Edit/Delete there own posts. <br />
 Comment on posts. <br />
 Edit/Delete their own comments. <br />
 Like/Unlike Posts. <br />
+<br /><br />
+To create a new post, login and navigate to /blog/newpost
