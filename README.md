@@ -9,7 +9,7 @@ Launch the App Engine and click "File --> Add Existing Application" and select t
 This application will create a fully functional blog.
 
 Users can:
-Create/Edit/Delete there own posts.
-Comment on posts.
-Edit/Delete their own comments.
-Like/Unlike Posts.
+Create/Edit/Delete there own posts. <br />
+Comment on posts. <br />
+Edit/Delete their own comments. <br />
+Like/Unlike Posts. <br />
