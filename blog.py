@@ -173,7 +173,7 @@ class PostPage(BlogHandler):
             self.error(404)
             return
 
-        self.render("permalink.html", post=post)
+        self.render("postpage.html", post=post)
 
 
 class NewPost(BlogHandler):
@@ -185,7 +185,7 @@ class NewPost(BlogHandler):
 
     def post(self):
         if not self.user:
-            self.redirect('/blog')
+            self.redirect('/login')
 
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -323,6 +323,9 @@ class Delete(BlogHandler):
         post_id = self.request.get("post")
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+        if not self.user != post.created_by:
+            self.redirect('/blog')
+
         self.render("delete.html", post=post)
 
     def post(self):
@@ -337,7 +340,7 @@ class Delete(BlogHandler):
                 error = "You do not have permission to delete this post"
                 self.render("delete.html", post=post, error=error)
         else:
-            self.redirect('/blog')
+            self.redirect('/login')
 
 
 class Edit(BlogHandler):
@@ -345,6 +348,8 @@ class Edit(BlogHandler):
         post_id = self.request.get("post")
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+        if not self.user != post.created_by:
+            self.redirect('/blog')
         subject = post.subject
         content = post.content
         if not post:
@@ -384,6 +389,7 @@ class Edit(BlogHandler):
 class CommentPage(BlogHandler):
     def get(self):
         if not self.user:
+            error = "You must be logged in to comment on posts"
             self.redirect('/login')
 
         post_id = self.request.get("post")
@@ -400,6 +406,8 @@ class CommentPage(BlogHandler):
                     comments=comments, post_id=post_id)
 
     def post(self):
+        if not self.user:
+            self.redirect('/login')
         post_id = self.request.get("post")
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -432,6 +440,11 @@ class EditComment(BlogHandler):
     def get(self):
         comment_id = self.request.get("comment")
         comment = Comment.get_by_id(int(comment_id))
+        if not self.user:
+            self.redirect('/login')
+        elif not self.user.name == comment.created_by:
+            self.redirect('/login')
+
         self.render("editcomment.html", comment=comment.content)
 
     def post(self):
@@ -464,6 +477,10 @@ class DeleteComment(BlogHandler):
     def get(self):
         comment_id = self.request.get("comment")
         comment = Comment.get_by_id(int(comment_id))
+        if not self.user:
+            self.redirect('/login')
+        elif not self.user.name == comment.created_by:
+            self.redirect('/login')
         self.render("deletecomment.html", comment=comment)
 
     def post(self):
@@ -546,7 +563,7 @@ class Welcome(BlogHandler):
             self.redirect('/unit2/signup')
 
 
-app = webapp2.WSGIApplication([('/', MainPage),
+app = webapp2.WSGIApplication([('/blog', MainPage),
                                ('/unit2/rot13', Rot13),
                                ('/unit2/signup', Unit2Signup),
                                ('/unit2/welcome', Welcome),
@@ -564,6 +581,5 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
-                               ('/unit3/welcome', Unit3Welcome),
                                ],
                               debug=True)
