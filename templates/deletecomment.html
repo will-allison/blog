@@ -4,6 +4,7 @@
 <h2>Are you sure you want to delete this comment?</h2>
 <form method="post">
 	<input type=submit>
+	<input type="button" class="cancel-button" value="Cancel" onclick="location.href='/blog/'">
 </form><br>
 <div class="error">{{error}}</div><br>
   {{comment.render() | safe}}
